@@ -15,7 +15,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import type { useFunction } from "@/hooks/use-function";
-import { getFunctionsCSVDump } from "@/services/backend";
+import { getFunctionsCSVDump, getMyMicrosoftTeams } from "@/services/backend";
 import { Route } from "@/routes";
 import { SearchField } from "./search-field";
 import { FunctionCard } from "./function-card";
@@ -32,6 +32,7 @@ export function FunctionColumnView({ path }: FunctionColumnViewProps) {
 	const selectedFunctionIds = getIdsFromPath(path);
 	const navigate = Route.useNavigate();
 	const search = Route.useSearch();
+	const downloadTeamNames = true;
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, {
@@ -82,6 +83,33 @@ export function FunctionColumnView({ path }: FunctionColumnViewProps) {
 	const handleExportCSV = async () => {
 		try {
 			const csvData = await getFunctionsCSVDump();
+
+			if (downloadTeamNames) {
+				const teamCSVdata = await getMyMicrosoftTeams();
+
+				const csvRows = [];
+
+				csvRows.push(["id", "displayName"]);
+				teamCSVdata.forEach((value) => {
+					csvRows.push([value.id, value.displayName]);
+				});
+
+				let csvContent = "";
+
+				csvRows.forEach((row) => {
+					csvContent += `${row.join(",")}\n`;
+				});
+				const teamBlob = new Blob([csvContent], {
+					type: "text/csv;charset=utf-8,",
+				});
+				const objUrl = URL.createObjectURL(teamBlob);
+				const teamLink = document.createElement("a");
+				teamLink.setAttribute("href", objUrl);
+				teamLink.setAttribute("download", "teamNames.csv");
+				document.body.appendChild(teamLink);
+				teamLink.click();
+				document.body.removeChild(teamLink);
+			}
 
 			if (!csvData) {
 				throw new Error("No data received for CSV");
